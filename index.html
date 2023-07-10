@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Simple WebGL Scene</title>
+  <style>
+    canvas {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="webglCanvas" width="800" height="800"></canvas>
+
+  <script type="module">
+    import { initializeWebGLScene } from './webglScene.mjs';
+
+    // initialize the WebGL scene
+    initializeWebGLScene();
+  </script>
+</body>
+</html>
