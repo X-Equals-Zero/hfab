@@ -9,6 +9,10 @@
   "author": "hfab",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.18.2"
+    "express": "^4.18.2",
+    "three": "^0.154.0"
+  },
+  "devDependencies": {
+    "vite": "^4.4.2"
   }
 }
