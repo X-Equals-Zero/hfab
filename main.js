@@ -1,79 +1,84 @@
 // webglScene.js
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
 
-const renderer = new THREE.WebGLRenderer();
-renderer.setSize( window.innerWidth, window.innerHeight );
-document.body.appendChild( renderer.domElement );
-
-const geometry = new THREE.PlaneGeometry(0.8, 0.8);
-const material = new THREE.MeshBasicMaterial( { color: 0x00ff00, wireframe: false } );
-var rot = 0;
-var ROWS = 51;
-var COLUMNS = 51;
-
-var instances = ROWS * COLUMNS;
-const mesh = new THREE.InstancedMesh( geometry, material, instances );
-const light = new THREE.PointLight( 0xff0000, 5, instances );
-// move light up 
-light.position.set( 5, 15, 1 );
-scene.add( light );
-scene.add( mesh );
-let { scaleX, scaleY, scaleZ } = { scaleX: 1, scaleY: 1, scaleZ: 1 }
-const matrix = new THREE.Matrix4();
-
-
-// use orbit controls
-const controls = new OrbitControls( camera, renderer.domElement );
-controls.update();
-
-camera.position.z = 20;
-// set camera y to scroll wheel position
-
+let camera, scene, renderer, geometry, material, mesh, light, controls;
+let ROWS, COLUMNS, instances;
+let rot = 0;
 const raycaster = new THREE.Raycaster();
-const mouse = new THREE.Vector2();
+const mouse = new THREE.Vector2(1, 1);
+const color = new THREE.Color( 0xff00ff);
+let previousTime = 0;
+const incrementPerSecond = 1;
 
-// Event listener for mouse movement
-document.addEventListener( 'mousemove', onMouseMove, false );
+init();
+animate(performance.now());
+function init() {
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 100 );
+    camera.position.z = 20;
+
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize( window.innerWidth, window.innerHeight );
+    document.body.appendChild( renderer.domElement );
+
+    // use orbit controls
+    controls = new OrbitControls( camera, renderer.domElement );
+    controls.update();
+
+    
+
+    ROWS = 25;
+    COLUMNS = 25;
+    instances = ROWS * COLUMNS;
+    
+    light = new THREE.HemisphereLight( 0xffffff, 0x888888, 3);
+    
+    // move light up 
+    light.position.set( 5, 15, 1 );
+
+    // add light and mesh to scene
+    scene.add( light );
+
+    // create mesh
+    geometry = new THREE.PlaneGeometry(0.8, 0.8);
+    material = new THREE.MeshPhongMaterial( { color: 0xffffff } );
+    mesh = new THREE.InstancedMesh( geometry, material, instances );
+    for( let i = 0; i < instances; i++) {
+        mesh.setColorAt( i, color.setHex( Math.random() * 0xffffff ) );
+    }
+
+    scene.add( mesh );
+
+    // Event listener for mouse movement
+    document.addEventListener( 'pointermove', onMouseMove, false );
+}
 
 // Function to handle mouse movement
 function onMouseMove( event ) {
-    
+    event.preventDefault();
     // Calculate the mouse coordinates relative to the canvas
-    const canvas = renderer.domElement;
-    const rect = canvas.getBoundingClientRect();
-    mouse.x = ( event.clientX - rect.left) / rect.width * 2 - 1;
-    mouse.y = - ( event.clientY - rect.top) / rect.height * 2 + 1;
 
-    // Performing raycasting
-    raycaster.setFromCamera(mouse, camera);
-    const intersects = raycaster.intersectObjects(scene.children, true);
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
 
-    // Check for intersections
-    if (intersects.length > 0) {
-        // Get the first insterscted object
-        const intersectedObj = intersects[0].object;
-
-        // Do something with the object
-        intersectedObj.material.color.set(0xff0000);
-    }
 }
-let {previousTime, currentTime} = {previousTime: performance.now(), currentTime: performance.now()};
-const incrementPerSecond = 15;
-function animate() {
+
+function animate(currentTime) {
 
 	
     requestAnimationFrame( animate );
-    let index = 0;
+    
     // Calculate the time difference since the last frame
     currentTime = performance.now();
     const deltaTime = (currentTime - previousTime) / 1000; // Convert to seconds
-    console.log(deltaTime);
-    previousTime = currentTime;
 
+    previousTime = currentTime;
     rot += incrementPerSecond * deltaTime;
+
+    let index = 0;
+    const matrix = new THREE.Matrix4();
+
 	for (let i = 0; i < ROWS; i++) {
         
        for(let j = 0; j < COLUMNS; j++) {
@@ -86,13 +91,8 @@ function animate() {
             // make it do waves with z axis
             let dist = i + j;
             let p1 = -3 * Math.cos(dist * 0.3 + rot);
-            let z =  2 * Math.sin(dist * 0.3 + rot) + p1;
-            if(i%10 == 0) {
-                z *= -1;
-            }
-            if(j%10 == 0) {
-                z *= -1;
-            }
+            let z =  Math.sin(dist * 0.3 + rot);
+
             matrix.setPosition(x, y, z); // Set the position
 
             mesh.setMatrixAt(index, matrix); // Apply the matrix to the instance
@@ -101,7 +101,16 @@ function animate() {
     }
     mesh.instanceMatrix.needsUpdate = true; // Update the instance data
 
+    // raycast to find the object and change its color
+    raycaster.setFromCamera( mouse, camera );
+    const intersection = raycaster.intersectObject( mesh );
+    if ( intersection.length > 0 ) {
+        const instanceId = intersection[ 0 ].instanceId;
+        mesh.setColorAt( instanceId, color.setHex( 0x000aaa ) );
+        mesh.instanceColor.needsUpdate = true;
+
+       
+    }
     renderer.render( scene, camera );
 }
 
-animate();
