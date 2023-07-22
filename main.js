@@ -4,8 +4,8 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 let camera, scene, renderer, geometry, material, mesh, light, controls;
 let ROWS, COLUMNS, instances;
-ROWS = 155;
-COLUMNS = 155;
+ROWS = 225;
+COLUMNS = 225;
 let gridState = [];
 let newState = [];
 let neighbors = [];
@@ -32,6 +32,12 @@ function getIndex(x, y){
 
     return (x1 * COLUMNS) + y1;
 }
+
+function getCord(i) {
+    let x = Math.floor( i / ROWS);
+    let y = i - (x * ROWS);
+    return [x, y];
+}
 function getNeighbors(index) {
     return neighbors[index];
 }
@@ -46,23 +52,129 @@ function getOuterNeighbors(index) {
 function setOuterNeighbors(index, value) {
     outerNeighbors[index] = value;
 }
+
+function calcNeighbors(cords) {
+    let sum = 0;
+    let outerSum = 0;
+
+    outerSum += getGridState(getIndex( cords[0]-2, cords[1]-2 ));
+    outerSum += getGridState(getIndex( cords[0]-2, cords[1]-1 ));
+    outerSum += getGridState(getIndex( cords[0]-2, cords[1] ));
+    outerSum += getGridState(getIndex( cords[0]-2, cords[1]+1 ));
+    outerSum += getGridState(getIndex( cords[0]-2, cords[1]+2 ));
+    
+    outerSum += getGridState(getIndex( cords[0]-1, cords[1]-2 ));
+    sum += getGridState(getIndex( cords[0]-1, cords[1]-1 ));
+    sum += getGridState(getIndex( cords[0]-1, cords[1] ));
+    sum += getGridState(getIndex( cords[0]-1, cords[1]+1 ));
+    outerSum += getGridState(getIndex( cords[0]-1, cords[1]+2 ));
+
+    outerSum += getGridState(getIndex( cords[0], cords[1]-2 ));
+    sum += getGridState(getIndex( cords[0], cords[1]-1 ));
+
+    sum += getGridState(getIndex( cords[0], cords[1]+1 ));
+    outerSum += getGridState(getIndex( cords[0], cords[1]+2 ));
+
+    outerSum += getGridState(getIndex( cords[0]+1, cords[1]-2 ));
+    sum += getGridState(getIndex( cords[0]+1, cords[1]-1 ));
+    sum += getGridState(getIndex( cords[0]+1, cords[1] ));
+    sum += getGridState(getIndex( cords[0]+1, cords[1]+1 ));
+    outerSum += getGridState(getIndex( cords[0]+1, cords[1]+2 ));
+    
+    outerSum += getGridState(getIndex( cords[0]+2, cords[1]-2 ));
+    outerSum += getGridState(getIndex( cords[0]+2, cords[1]-1 ));
+    outerSum += getGridState(getIndex( cords[0]+2, cords[1] ));
+    outerSum += getGridState(getIndex( cords[0]+2, cords[1]+1 ));
+    outerSum += getGridState(getIndex( cords[0]+2, cords[1]+2 ));
+    return [sum, outerSum];
+}
 function nextState() {
+
+    for(let i = 0; i < instances; i++) {
+        let cords = getCord(i);
+        let sums = calcNeighbors(cords);
+        setNeighbors(i, sums[0]);
+        setOuterNeighbors(i, sums[1]);
+        
+        
+        let tempState = getGridState(i);
+        let tempTotal = sums[0] + sums[1];
+        if(tempState === 1){
+            //if(sum < 3 || sum > 4) newState[tempIndex] = 0;
+            if(tempTotal < 4 && sums[1] < 8) newState[i] = 0;
+            if(tempTotal > 7 && sums[1] > 17) { newState[i] = 0 }
+
+            
+        }
+        else if(tempState === 0) {
+            if (tempTotal > 9 && tempTotal < 12) { newState[i] = 1 }
+
+        }
+
+
+
+
+            
+
+        
+    }
+    gridState = newState;
+
+
+}
+function nextNextState() {
+
+    for(let i = 0; i < instances; i++) {
+        let tempState = getGridState(i);
+        if(tempState === 0) continue;
+        let cords = getCord(i);
+        let sums = calcNeighbors(cords);
+        setNeighbors(i, sums[0]);
+        setOuterNeighbors(i, sums[1]);
+        
+        
+        
+        let tempTotal = sums[0] + sums[1];
+        if(tempState === 1){
+            //if(sum < 3 || sum > 4) newState[tempIndex] = 0;
+            if(tempTotal < 4 && sums[1] < 8) newState[i] = 0;
+            if(tempTotal > 7 && sums[1] > 17) { newState[i] = 0 }
+
+            
+        }
+        else if(tempState === 0) {
+            //if (tempTotal > 9 && tempTotal < 12) { newState[i] = 1 }
+
+        }
+
+
+
+
+            
+
+        
+    }
+    gridState = newState;
+
+
+}
+function nextStateDeprecated() {
     let index = 0;
     for(let i = 0; i < ROWS; i++) {
         for(let j = 0; j < COLUMNS; j++) {
             let sum = 0;
             let outerSum = 0;
             let tempIndex = getIndex( i, j);
-            //outerSum += getGridState(getIndex( i-2, j-2 ));
+            outerSum += getGridState(getIndex( i-2, j-2 ));
             outerSum += getGridState(getIndex( i-2, j-1 ));
             outerSum += getGridState(getIndex( i-2, j ));
             outerSum += getGridState(getIndex( i-2, j+1 ));
-            //outerSum += getGridState(getIndex( i-2, j+2 ));
+            outerSum += getGridState(getIndex( i-2, j+2 ));
             
             outerSum += getGridState(getIndex( i-1, j-2 ));
-            //sum += getGridState(getIndex( i-1, j-1 ));
+            sum += getGridState(getIndex( i-1, j-1 ));
             sum += getGridState(getIndex( i-1, j ));
-            //sum += getGridState(getIndex( i-1, j+1 ));
+            sum += getGridState(getIndex( i-1, j+1 ));
             outerSum += getGridState(getIndex( i-1, j+2 ));
 
             outerSum += getGridState(getIndex( i, j-2 ));
@@ -72,29 +184,32 @@ function nextState() {
             outerSum += getGridState(getIndex( i, j+2 ));
 
             outerSum += getGridState(getIndex( i+1, j-2 ));
-            //sum += getGridState(getIndex( i+1, j-1 ));
+            sum += getGridState(getIndex( i+1, j-1 ));
             sum += getGridState(getIndex( i+1, j ));
-            //sum += getGridState(getIndex( i+1, j+1 ));
+            sum += getGridState(getIndex( i+1, j+1 ));
             outerSum += getGridState(getIndex( i+1, j+2 ));
             
-           // outerSum += getGridState(getIndex( i+2, j-2 ));
+           outerSum += getGridState(getIndex( i+2, j-2 ));
             outerSum += getGridState(getIndex( i+2, j-1 ));
             outerSum += getGridState(getIndex( i+2, j ));
             outerSum += getGridState(getIndex( i+2, j+1 ));
-            //outerSum += getGridState(getIndex( i+2, j+2 ));
+            outerSum += getGridState(getIndex( i+2, j+2 ));
             setNeighbors(tempIndex, sum);
             setOuterNeighbors(tempIndex, outerSum);
             
             
             let tempState = getGridState(tempIndex);
+            let tempTotal = sum + outerSum;
             if(tempState === 1){
-                if(sum > 4) newState[tempIndex] = 0;
-                if(outerSum < 2) newState[tempIndex] = 1;
+                //if(sum < 3 || sum > 4) newState[tempIndex] = 0;
+                if(tempTotal < 3) newState[tempIndex] = 0;
+                if(sum > 8) { newState[tempIndex] = 0 }
 
                 
             }
             else if(tempState === 0) {
-                if (sum > 1 && outerSum < 7) { newState[tempIndex] = 1 }
+                if (tempTotal > 10 && tempTotal < 13) { newState[tempIndex] = 1 }
+                if(outerSum > 12) { newState[tempIndex] = 1 }
             }
             index++;
 
@@ -111,7 +226,7 @@ function nextState() {
 function init() {
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 500 );
-    camera.position.z = 20;
+    camera.position.z = 40;
     
 
     renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -120,7 +235,7 @@ function init() {
 
     // use orbit controls
     controls = new OrbitControls( camera, renderer.domElement );
-    controls.enableRotate = false;
+    //controls.enableRotate = false;
     controls.update();
 
     
@@ -137,16 +252,20 @@ function init() {
     scene.add( light );
 
     // create mesh
-    geometry = new THREE.BoxGeometry(1, 1, 5);
-    material = new THREE.MeshPhongMaterial( { color: 0xffffff } );
+    geometry = new THREE.PlaneGeometry(1, 1);
+    material = new THREE.MeshPhongMaterial( { color: 0xF0FFFF } );
     mesh = new THREE.InstancedMesh( geometry, material, instances );
     for( let i = 0; i < instances; i++) {
-
-        mesh.setColorAt( i, color.setHex( Math.random() * 0xffffff ) );
-        if(i < 200){gridState.push(1);} else {gridState.push(0);}
+        mesh.setColorAt( i, color.setHex( Math.random() * 0xF0FFFF ) );
+        if(Math.random()  > 0.8){gridState.push(1);} else {gridState.push(0);}
 
         
         
+    }
+    for( let x = 0; x < ROWS; x++) {
+        for( let y = 0; y < COLUMNS; y ++ ) {
+            
+        }
     }
     newState = [...gridState];
     neighbors = Array.apply(null, Array(instances)).map(Number.prototype.valueOf, 0);
@@ -176,6 +295,7 @@ function getGridState(index) {
 }
 
 var elapsedTime = 0;
+var renderedFrames = 0;
 function animate(currentTime) {
 
 	
@@ -208,48 +328,40 @@ function animate(currentTime) {
             
 
             let tempState = getGridState(getIndex(i, j));
+            let neighs = { 0: 6, 1: 9, 2: 10, 3: 18};
             if(tempState === 1) {
                 
                 let tempNeighbors = getNeighbors(getIndex(i, j));
                 let tempOuterNeighbors = getOuterNeighbors(getIndex(i, j));
-                mesh.setColorAt( index, color.setHex( 0x333aaa ) );
-                z = 1;
-                if (tempNeighbors > 1){
-                    mesh.setColorAt( index, color.setHex( 0x111111 ) );
-
-                }
-                if (tempNeighbors > 2){
-                    mesh.setColorAt( index, color.setHex( 0x222222 ) );
-                    z = 1.5;
-                }
-                if(tempNeighbors > 3){
-                    mesh.setColorAt( index, color.setHex( 0x333333 ) );
-                    z = 2;
-                }
-                if(tempNeighbors >= 5){
-                    mesh.setColorAt( index, color.setHex( 0x333aaa ) );
-                    z = 2.3;
-                    
-                }
-                if(tempOuterNeighbors > 9){
-                    mesh.setColorAt( index, color.setHex( 0x333aaa ) );
-                    z = 2.3;
-                }
-                if(tempOuterNeighbors == 5){
-                    mesh.setColorAt( index, color.setHex( 0xff0000 ) );
-                    z = 2.5;
-                }
-                if(tempOuterNeighbors == 6){
-                    mesh.setColorAt( index, color.setHex( 0xff2222 ) );
-                    z = 3;
-                }
+                mesh.setColorAt( index, color.setHex( 0xC9CC3F ) );
+                
+                let tempTotal = tempNeighbors + tempOuterNeighbors;
+                if (tempTotal === 0){
+                    mesh.setColorAt( index, color.setHex( 0x40B5AD ) );
                 
 
+                }
+                else if(tempTotal > neighs[3]){ //most neighbors
+                    mesh.setColorAt( index, color.setHex( 0x2E8B57 ) );
+                    z = 2.5;
+                    
+                }
+                else if(tempTotal > neighs[2]){
+                    mesh.setColorAt( index, color.setHex( 0x93C572 ) );
+                    z = 1.5;
+                }
+                else if (tempTotal > neighs[1]){
+                    mesh.setColorAt( index, color.setHex( 0xB4C424 ) );
+                    z = 1.3;
+                }
 
-
+                else if (tempTotal >= neighs[0]){ // least neighbors
+                    mesh.setColorAt( index, color.setHex( 0x40B5AD ) );
+                    z = 1.1;
+                }
             }
             else {
-                mesh.setColorAt( index, color.setHex( 0xfff111 ) );
+                mesh.setColorAt( index, color.setHex( 0x0F52BA ) );
 
             }
             matrix.setPosition(x, y, z); // Set the position
@@ -271,15 +383,28 @@ function animate(currentTime) {
         setGridState(instanceId, 1);
         setGridState(instanceId + COLUMNS, 1);
         setGridState(instanceId - COLUMNS, 1);
-        setGridState(instanceId + 1, 1)
-        setGridState(instanceId-1, 1)
+        setGridState(instanceId + 1, 1);
+        setGridState(instanceId-1, 1);
+
+        updateNeighbors(instanceId);
+        updateNeighbors(instanceId + COLUMNS);
+        updateNeighbors(instanceId - COLUMNS);
+        updateNeighbors(instanceId + 1);
+        updateNeighbors(instanceId-1);
         
         mesh.instanceColor.needsUpdate = true;
 
        
     }
     elapsedTime++;
-    if(elapsedTime > 3) {nextState(gridState); elapsedTime = 0;}
+    if(elapsedTime > 3 && renderedFrames < 25) {nextState(gridState); renderedFrames++; elapsedTime = 0;}
+    if(renderedFrames === 25) { console.log(performance.now()); renderedFrames++;}
+
     renderer.render( scene, camera );
 }
 
+function updateNeighbors(id) {
+    let sums = calcNeighbors(getCord(id));
+    setNeighbors(id, sums[0]);
+    setOuterNeighbors(id, sums[1]);
+}
