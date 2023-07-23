@@ -1,11 +1,12 @@
 // webglScene.js
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-
+import { player } from './player';
 let camera, scene, renderer, geometry, material, mesh, light, controls;
 let ROWS, COLUMNS, instances;
-ROWS = 225;
-COLUMNS = 225;
+let playerData;
+ROWS = 255;
+COLUMNS = 255;
 let gridState = [];
 let newState = [];
 let neighbors = [];
@@ -99,15 +100,17 @@ function nextState() {
         
         let tempState = getGridState(i);
         let tempTotal = sums[0] + sums[1];
+        if(tempTotal < 4 && sums[1] < 8) newState[i] = 0;
+        if(tempTotal > 7 && sums[1] > 17) { newState[i] = 0 }
+        if (tempTotal > 9 && tempTotal < 12) { newState[i] = 1 }
         if(tempState === 1){
             //if(sum < 3 || sum > 4) newState[tempIndex] = 0;
-            if(tempTotal < 4 && sums[1] < 8) newState[i] = 0;
-            if(tempTotal > 7 && sums[1] > 17) { newState[i] = 0 }
+            
 
             
         }
         else if(tempState === 0) {
-            if (tempTotal > 9 && tempTotal < 12) { newState[i] = 1 }
+            
 
         }
 
@@ -137,8 +140,15 @@ function nextNextState() {
         let tempTotal = sums[0] + sums[1];
         if(tempState === 1){
             //if(sum < 3 || sum > 4) newState[tempIndex] = 0;
-            if(tempTotal < 4 && sums[1] < 8) newState[i] = 0;
-            if(tempTotal > 7 && sums[1] > 17) { newState[i] = 0 }
+            //if(tempTotal < 4 && sums[1] < 8) newState[i] = 0;
+            if(tempTotal > 20 && tempTotal < 22) { newState[i] = 2 }
+
+            
+        }
+        else if(tempState === 2){
+            //if(sum < 3 || sum > 4) newState[tempIndex] = 0;
+            //if(tempTotal < 4 && sums[1] < 8) newState[i] = 0;
+            if(tempTotal > 15) { newState[i] = 1 }
 
             
         }
@@ -223,20 +233,21 @@ function nextStateDeprecated() {
 
 
 }
+
 function init() {
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 500 );
-    camera.position.z = 40;
-    
+
+
 
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize( window.innerWidth, window.innerHeight );
     document.body.appendChild( renderer.domElement );
 
     // use orbit controls
-    controls = new OrbitControls( camera, renderer.domElement );
+    //controls = new OrbitControls( camera, renderer.domElement );
     //controls.enableRotate = false;
-    controls.update();
+    //controls.update();
 
     
 
@@ -250,6 +261,9 @@ function init() {
 
     // add light and mesh to scene
     scene.add( light );
+    playerData = new player(scene, camera);
+    playerData.init();
+
 
     // create mesh
     geometry = new THREE.PlaneGeometry(1, 1);
@@ -268,7 +282,7 @@ function init() {
         }
     }
     newState = [...gridState];
-    neighbors = Array.apply(null, Array(instances)).map(Number.prototype.valueOf, 0);
+    neighbors = new Array(newState.length).fill(0);
     outerNeighbors = [...neighbors];
 
     scene.add( mesh );
@@ -311,11 +325,12 @@ function animate(currentTime) {
     let index = 0;
     const matrix = new THREE.Matrix4();
 
+    playerData.update();
 	for (let i = 0; i < ROWS; i++) {
         
        for(let j = 0; j < COLUMNS; j++) {
         
-
+            
             // Set the transform (position, rotation, scale) for each instance
             //matrix.makeRotationFromQuaternion( camera.quaternion ); // Rotate towards the camera
             let x = -COLUMNS / 2 + i; 
@@ -360,6 +375,10 @@ function animate(currentTime) {
                     z = 1.1;
                 }
             }
+            else if(tempState === 2) {
+                mesh.setColorAt( index, color.setHex( 0xbf8734 ) );
+                z = 3;
+            }
             else {
                 mesh.setColorAt( index, color.setHex( 0x0F52BA ) );
 
@@ -398,7 +417,7 @@ function animate(currentTime) {
     }
     elapsedTime++;
     if(elapsedTime > 3 && renderedFrames < 25) {nextState(gridState); renderedFrames++; elapsedTime = 0;}
-    if(renderedFrames === 25) { console.log(performance.now()); renderedFrames++;}
+    //if(renderedFrames >=25 && renderedFrames < 30) { nextNextState(gridState); renderedFrames++;}
 
     renderer.render( scene, camera );
 }
