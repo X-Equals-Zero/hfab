@@ -1,12 +1,12 @@
 // webglScene.js
 import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 import { player } from './player';
 let camera, scene, renderer, geometry, material, mesh, light, controls;
-let ROWS, COLUMNS, instances;
+let COLUMNS, ROWS, instances;
 let playerData;
-ROWS = 255;
-COLUMNS = 255;
+COLUMNS = 455;
+ROWS = 455;
 let gridState = [];
 let newState = [];
 let neighbors = [];
@@ -24,19 +24,19 @@ animate(performance.now());
 function getIndex(x, y){
     let x1 = x;
     let y1 = y;
-    if(x1 < 0) { x1 = ROWS - 1 + x}
-    if(x1 > ROWS - 1) { x1 = 0 + (x1 - (ROWS-1))}
-    if(y1 < 0) { y1 = COLUMNS - 1 + y}
-    if(y1 > COLUMNS - 1) { y1 = 0 + (y1 - (COLUMNS-1))}
+    if(x1 < 0) { x1 = COLUMNS - 1 + x}
+    if(x1 > COLUMNS - 1) { x1 = 0 + (x1 - (COLUMNS-1))}
+    if(y1 < 0) { y1 = ROWS - 1 + y}
+    if(y1 > ROWS - 1) { y1 = 0 + (y1 - (ROWS-1))}
 
     
 
-    return (x1 * COLUMNS) + y1;
+    return (x1 * ROWS) + y1;
 }
 
 function getCord(i) {
-    let x = Math.floor( i / ROWS);
-    let y = i - (x * ROWS);
+    let x = Math.floor( i / COLUMNS);
+    let y = i - (x * COLUMNS);
     return [x, y];
 }
 function getNeighbors(index) {
@@ -170,8 +170,8 @@ function nextNextState() {
 }
 function nextStateDeprecated() {
     let index = 0;
-    for(let i = 0; i < ROWS; i++) {
-        for(let j = 0; j < COLUMNS; j++) {
+    for(let i = 0; i < COLUMNS; i++) {
+        for(let j = 0; j < ROWS; j++) {
             let sum = 0;
             let outerSum = 0;
             let tempIndex = getIndex( i, j);
@@ -236,6 +236,7 @@ function nextStateDeprecated() {
 
 function init() {
     scene = new THREE.Scene();
+    scene.fog = new THREE.Fog( 0xffffff, 0.015, 100 ); 
     camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 500 );
 
 
@@ -245,14 +246,30 @@ function init() {
     document.body.appendChild( renderer.domElement );
 
     // use orbit controls
-    //controls = new OrbitControls( camera, renderer.domElement );
+    controls = new PointerLockControls( camera, document.body );
+    document.addEventListener('click', function() {
+        controls.lock();
+    })
     //controls.enableRotate = false;
     //controls.update();
 
-    
+    let instructions = document.getElementById('instructions');
+    let blocker = document.getElementById('blocker');
+
+    controls.addEventListener('lock', function() {
+        instructions.style.display = 'none';
+        blocker.style.display = 'none';
+    });
+    controls.addEventListener('unlock', function() {
+        blocker.style.display = 'block';
+        instructions.style.display = '';
+        
+    })
+
+    scene.add(controls.getObject());
 
     
-    instances = ROWS * COLUMNS;
+    instances = COLUMNS * ROWS;
     
     light = new THREE.HemisphereLight( 0xffffff, 0x888888, 3);
     
@@ -261,14 +278,16 @@ function init() {
 
     // add light and mesh to scene
     scene.add( light );
-    playerData = new player(scene, camera);
+    playerData = new player(scene, camera, controls);
     playerData.init();
 
 
     // create mesh
-    geometry = new THREE.PlaneGeometry(1, 1);
+    geometry = new THREE.IcosahedronGeometry(1);
+    //planeGeometry = new THREE.PlaneGeometry(1, 1);
     material = new THREE.MeshPhongMaterial( { color: 0xF0FFFF } );
     mesh = new THREE.InstancedMesh( geometry, material, instances );
+    //planeMesh = new THREE.InstancedMesh(planeGeometry, material, )
     for( let i = 0; i < instances; i++) {
         mesh.setColorAt( i, color.setHex( Math.random() * 0xF0FFFF ) );
         if(Math.random()  > 0.8){gridState.push(1);} else {gridState.push(0);}
@@ -276,11 +295,7 @@ function init() {
         
         
     }
-    for( let x = 0; x < ROWS; x++) {
-        for( let y = 0; y < COLUMNS; y ++ ) {
-            
-        }
-    }
+
     newState = [...gridState];
     neighbors = new Array(newState.length).fill(0);
     outerNeighbors = [...neighbors];
@@ -310,6 +325,8 @@ function getGridState(index) {
 
 var elapsedTime = 0;
 var renderedFrames = 0;
+var _x = -COLUMNS / 2; 
+var _y = -ROWS / 2;
 function animate(currentTime) {
 
 	
@@ -326,17 +343,27 @@ function animate(currentTime) {
     const matrix = new THREE.Matrix4();
 
     playerData.update();
-	for (let i = 0; i < ROWS; i++) {
+    var playerPos = playerData.getPlayerData().pos;
+    
+	for (let i = 0; i < COLUMNS; i++) {
         
-       for(let j = 0; j < COLUMNS; j++) {
+       for(let j = 0; j < ROWS; j++) {
+
+
         
             
             // Set the transform (position, rotation, scale) for each instance
             //matrix.makeRotationFromQuaternion( camera.quaternion ); // Rotate towards the camera
-            let x = -COLUMNS / 2 + i; 
-            let y = -ROWS / 2 + j;
+            let x = _x + i; 
+            let y = _y + j;
+
+            // if(playerPos.distanceTo(new THREE.Vector3(x, y, 0)) > 55){
+            //     index++;
+            //     continue;
+                
+            // }
             // make it do waves with z axis
-            let dist = i + j;
+            let dist = Math.sqrt(i**2 + j**2);
             //let p1 = -3 * Math.cos(dist * 0.3 + rot);
             let z =  Math.sin(dist * 0.3 + rot);
 
@@ -393,6 +420,16 @@ function animate(currentTime) {
     }
     mesh.instanceMatrix.needsUpdate = true; // Update the instance data
 
+    //raycastCamera(); 
+
+    elapsedTime++;
+    if(elapsedTime > 3 && renderedFrames < 25) {nextState(gridState); renderedFrames++; elapsedTime = 0;}
+    //if(renderedFrames >=25 && renderedFrames < 30) { nextNextState(gridState); renderedFrames++;}
+
+    renderer.render( scene, camera );
+}
+
+function raycastCamera() {
     // raycast to find the object and change its color
     raycaster.setFromCamera( mouse, camera );
     const intersection = raycaster.intersectObject( mesh );
@@ -400,14 +437,14 @@ function animate(currentTime) {
         const instanceId = intersection[ 0 ].instanceId;
         mesh.setColorAt( instanceId, color.setHex( 0x000aaa ) );
         setGridState(instanceId, 1);
-        setGridState(instanceId + COLUMNS, 1);
-        setGridState(instanceId - COLUMNS, 1);
+        setGridState(instanceId + ROWS, 1);
+        setGridState(instanceId - ROWS, 1);
         setGridState(instanceId + 1, 1);
         setGridState(instanceId-1, 1);
 
         updateNeighbors(instanceId);
-        updateNeighbors(instanceId + COLUMNS);
-        updateNeighbors(instanceId - COLUMNS);
+        updateNeighbors(instanceId + ROWS);
+        updateNeighbors(instanceId - ROWS);
         updateNeighbors(instanceId + 1);
         updateNeighbors(instanceId-1);
         
@@ -415,11 +452,6 @@ function animate(currentTime) {
 
        
     }
-    elapsedTime++;
-    if(elapsedTime > 3 && renderedFrames < 25) {nextState(gridState); renderedFrames++; elapsedTime = 0;}
-    //if(renderedFrames >=25 && renderedFrames < 30) { nextNextState(gridState); renderedFrames++;}
-
-    renderer.render( scene, camera );
 }
 
 function updateNeighbors(id) {
